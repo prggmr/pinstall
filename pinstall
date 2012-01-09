@@ -28,14 +28,27 @@
  * Yes it uses goto!!
  */
 
-$library_name = 'library_name';
-$library_repo = 'repo_location';
-$install_path = '/usr/lib/prggmrlabs';
-$bin_file = true;
-$bin_path = null;
+// Library name
+$library_name = null;
+// Library version
 $library_version = null;
-$prggmr_v  = 'v0.2.1';
+// GIT Repository Location
+$library_repo = null;
+// Does this installer use GIT?
 $isgit = false;
+// Is there a bin file to install?
+$bin_file = false;
+// Where is the bin file?
+$bin_path = null;
+
+// What prggmr version is packaged with this library?
+$prggmr_v  = 'v0.2.1';
+
+// Installation PATH
+$install_path = '/usr/lib/prggmrlabs';
+
+// Can prggmr be installed with this distr?
+$can_prggmr = true;
 
 function send($string, $eol = true) {
     print($string);
@@ -68,7 +81,7 @@ out("Do you want to change this? (y/n) "); // Output - prompt user
 $yn = in(STDIN);
 if ($yn == 'y') {
     answer:
-    send("Doing this means you plan on managing prggmr library on your own!");
+    //send("Doing this means you plan on managing prggmr library on your own!");
     out("Tell me where : ");
     $nl = in();
     if (!is_dir($nl)) {
@@ -90,6 +103,14 @@ if (!is_dir($install_path) && !@mkdir($install_path) ||
 }
 $include_path = rtrim($include_path, '/');
 set_include_path(get_include_path() . PATH_SEPARATOR . $install_path);
+$path = explode(PATH_SEPARATOR, get_include_path());
+$found_prggmr = false;
+foreach ($path as $_path) {
+    if ($found_prggmr) break;
+    if (file_exists($path.'/prggmr/lib/prggmr.php')) {
+        $found_prggmr = true;
+    }
+}
 send("Installing $library_name $library_version to $install_path/$library_name");
 if (!$isgit) {
     if (!is_dir($library_name)) {
@@ -101,7 +122,7 @@ if (!$isgit) {
         exit(0);
     }
     exec("cp -rf ".getcwd()."/$library_name $install_path/");
-    if (!file_exists('prggmr/lib/prggmr.php')) {
+    if (!$found_prggmr && $can_prggmr) {
         send("I was not able to find prggmr");
         out("Do you want me to install prggmr? (y/n)");
         $prggmr = in();
@@ -113,10 +134,10 @@ if (!$isgit) {
                 send("Can you check if it is on my root?");
                 send("It should be located at ".getcwd()."/prggmr");
                 send("If it's there run the following command.");
-                send("sudo cp -rf ".getcwd()."/prggmr $install_path/ && ln -s $install_path/prggmr/bin/prggmr /usr/bin");
+                send("sudo cp -rf ".getcwd()."/prggmr $install_path && ln -s $install_path/prggmr/bin/prggmr /usr/bin");
                 send("If you need some help visit http://www.prggmrlabs.com");
             } else {
-                exec("cp -rf ".getcwd()."/prggmr $install_path/ && ln -s $install_path/prggmr/bin/prggmr /usr/bin");
+                exec("cp -rf ".getcwd()."/prggmr $install_path && ln -s $install_path/prggmr/bin/prggmr /usr/bin");
             }
         }
     }
@@ -133,7 +154,7 @@ if (!$isgit) {
     }
     chdir($library_name);
     exec("git checkout $library_version");
-    if (!file_exists('prggmr/lib/prggmr.php')) {
+    if ($found_prggmr && $can_prggmr) {
         send("I was not able to find prggmr");
         out("Do you want me to install prggmr? (y/n)");
         $prggmr = in();
