@@ -1,0 +1,5 @@
+pinstall is php installation script for installation prggmr libraries.
+
+pinstall is run by executing
+
+sudo php pinstall

@@ -1,0 +1,159 @@
+#!/usr/bin/php
+<?php
+/**
+ *  Copyright 2010-12 Nickolas Whiting
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ * @author  Nickolas Whiting  <prggmr@gmail.com>
+ * @package  prggmrunit
+ * @copyright  Copyright (c), 2010-12 Nickolas Whiting
+ */
+ 
+/**
+ * pinstall is a simple installation script for installing
+ * prggmr libraries using git or the source files.
+ *
+ * Yes it uses goto!!
+ */
+
+$library_name = 'library_name';
+$library_repo = 'repo_location';
+$install_path = '/usr/lib/prggmrlabs';
+$bin_file = true;
+$bin_path = null;
+$library_version = null;
+$prggmr_v  = 'v0.2.1';
+$isgit = false;
+
+function send($string, $eol = true) {
+    print($string);
+    if ($eol) print(PHP_EOL);
+}
+
+function in() {
+    return trim(fgets(STDIN));
+}
+
+function out($string) {
+    fwrite(STDOUT, $string);
+}
+
+if (version_compare(phpversion(), '5.3', '<')) {
+    send("You need at least PHP 5.3");
+    exit(0);
+}
+
+send("I must run with root to install properly!");
+send('');
+send("$library_name $library_version");
+send("By Nickolas Whiting");
+send('');
+send(sprintf(
+    "Using $install_path/$library_name as the install location"
+));
+question:
+out("Do you want to change this? (y/n) "); // Output - prompt user
+$yn = in(STDIN);
+if ($yn == 'y') {
+    answer:
+    send("Doing this means you plan on managing prggmr library on your own!");
+    out("Tell me where : ");
+    $nl = in();
+    if (!is_dir($nl)) {
+        if (!@mkdir($nl)) {
+            send("That does not exist and I cannot create!");
+            goto answer;
+        }
+    } 
+    $install_path = $nl;
+} elseif ($yn != 'n') {
+    send("I accept only y/n as a response");
+    goto question;
+}
+if (!is_dir($install_path) && !@mkdir($install_path) || 
+    !is_writeable($install_path)) {
+    send("I cannot write to that location");
+    send("Are you running as root?");
+    exit(0);
+}
+$include_path = rtrim($include_path, '/');
+set_include_path(get_include_path() . PATH_SEPARATOR . $install_path);
+send("Installing $library_name $library_version to $install_path/$library_name");
+if (!$isgit) {
+    if (!is_dir($library_name)) {
+        send("This is embarrassing...");
+        send("I can't seem to find the $library_name folder...");
+        send("Can you check if it is on my root?");
+        send("It should be located at ".getcwd()."/$library_name");
+        send("If the installation fails again visit http://www.prggmrlabs.com help for assistance!");
+        exit(0);
+    }
+    exec("cp -rf ".getcwd()."/$library_name $install_path/");
+    if (!file_exists('prggmr/lib/prggmr.php')) {
+        send("I was not able to find prggmr");
+        out("Do you want me to install prggmr? (y/n)");
+        $prggmr = in();
+        if ($prggmr == 'y') {
+            if (!is_dir('prggmr')) {
+                send("This is embarrassing...");
+                send("$library_name has installed but prggmr install has failed!");
+                send("I can't seem to find the $library_name folder...");
+                send("Can you check if it is on my root?");
+                send("It should be located at ".getcwd()."/prggmr");
+                send("If it's there run the following command.");
+                send("sudo cp -rf ".getcwd()."/prggmr $install_path/ && ln -s $install_path/prggmr/bin/prggmr /usr/bin");
+                send("If you need some help visit http://www.prggmrlabs.com");
+            } else {
+                exec("cp -rf ".getcwd()."/prggmr $install_path/ && ln -s $install_path/prggmr/bin/prggmr /usr/bin");
+            }
+        }
+    }
+} else {
+    send("Installing via the git repository");
+    send("Downloading $library_name library");
+    chdir($install_path);
+    exec("git clone $library_repo $library_name");
+    if (!is_dir($install_path)) {
+        send("Uh-oh spagetti-o!");
+        send("Looks like something failed ... are there any errors on your screen?");
+        send("If so please copy them and reattempt the install");
+        send("If the installation fails again visit http://www.prggmrlabs.com help for assistance!");
+    }
+    chdir($library_name);
+    exec("git checkout $library_version");
+    if (!file_exists('prggmr/lib/prggmr.php')) {
+        send("I was not able to find prggmr");
+        out("Do you want me to install prggmr? (y/n)");
+        $prggmr = in();
+        if ($prggmr == 'y') {
+            send("Installing prggmr $prggmr_v");
+            chdir($install_path);
+            exec("git clone http://github.com/nwhitingx/prggmr.git prggmr");
+            chdir('prggmr');
+            exec("git submodules init");
+            exec("git submodules update");
+            exec("git checkout $prggmr_v");
+            send("Installing prggmr bin");
+            exec("ln -s $install_path/prggmr/bin/prggmr /usr/bin");
+            send("prggmr installation done!");
+        }
+    }
+}
+if (false !== $bin_file) {
+    send("Installing $library_name bin file");
+    exec("ln -s $install_path/$library_name/$bin_path /usr/bin");
+}
+send("Installation done!");
+send("Thank you for choosing prggmr as your php innovation!");
